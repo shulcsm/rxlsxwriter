@@ -7,7 +7,10 @@ use std::fs::File;
 use zip::{ZipWriter, CompressionMethod, write::FileOptions};
 
 
-fn write_content_types(workbook: &WorkBook, writer: &mut EventWriter<ZipWriter<impl Write + Seek>>) {
+fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let mut writer = EmitterConfig::new().perform_indent(true)
+        .create_writer(writer);
+
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.inner_mut().start_file("[Content_Types].xml", options).unwrap();
 
@@ -53,6 +56,41 @@ fn write_content_types(workbook: &WorkBook, writer: &mut EventWriter<ZipWriter<i
     writer.write(XmlEvent::end_element());
 }
 
+fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    // Should this whole thing just be static string/file?
+    let mut writer = EmitterConfig::new().perform_indent(true)
+        .create_writer(writer);
+
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.inner_mut().start_file("_rels/.rels", options).unwrap();
+
+    writer.write(
+        XmlEvent::start_element("Relationships")
+            .default_ns("http://schemas.openxmlformats.org/package/2006/relationships"));
+
+    writer.write(
+        XmlEvent::start_element("Relationship")
+            .attr("Id", "rId1")
+            .attr("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument")
+            .attr("Target", "xl/workbook.xml"));
+    writer.write(XmlEvent::end_element());
+
+    writer.write(
+        XmlEvent::start_element("Relationship")
+            .attr("Id", "rId2")
+            .attr("Type", "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties")
+            .attr("Target", "docProps/core.xml"));
+    writer.write(XmlEvent::end_element());
+
+    writer.write(
+        XmlEvent::start_element("Relationship")
+            .attr("Id", "rId3")
+            .attr("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties")
+            .attr("Target", "docProps/app.xml"));
+    writer.write(XmlEvent::end_element());
+
+    writer.write(XmlEvent::end_element());
+}
 
 pub fn write_document(workbook: &WorkBook, dst_path: String) {
     let path = Path::new(&dst_path);
@@ -60,9 +98,8 @@ pub fn write_document(workbook: &WorkBook, dst_path: String) {
 
     let mut zip = ZipWriter::new(file);
 
-    let mut writer = EmitterConfig::new().perform_indent(true)
-        .create_writer(zip);
+    write_content_types(workbook, &mut zip);
+    write_root_rels(workbook, &mut zip);
 
-    write_content_types(workbook, &mut writer);
-    writer.inner_mut().finish().unwrap();
+    zip.finish().unwrap();
 }
