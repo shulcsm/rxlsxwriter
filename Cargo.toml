@@ -1,0 +1,8 @@
+[package]
+name = "rxlsxwriter"
+version = "0.1.0"
+authors = ["Mārtiņš Šulcs <shulcsm@gmail.com>"]
+
+[dependencies]
+xml-rs = "0.8"
+zip = "0.4"
