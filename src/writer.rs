@@ -8,11 +8,11 @@ use zip::{ZipWriter, CompressionMethod, write::FileOptions};
 
 
 fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.start_file("[Content_Types].xml", options).unwrap();
+
     let mut writer = EmitterConfig::new().perform_indent(true)
         .create_writer(writer);
-
-    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-    writer.inner_mut().start_file("[Content_Types].xml", options).unwrap();
 
     writer.write(XmlEvent::start_element("Types")
         .default_ns("http://schemas.openxmlformats.org/package/2006/content-types"));
@@ -57,12 +57,12 @@ fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
 }
 
 fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.start_file("_rels/.rels", options).unwrap();
+
     // Should this whole thing just be static string/file?
     let mut writer = EmitterConfig::new().perform_indent(true)
         .create_writer(writer);
-
-    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-    writer.inner_mut().start_file("_rels/.rels", options).unwrap();
 
     writer.write(
         XmlEvent::start_element("Relationships")
