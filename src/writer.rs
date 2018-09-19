@@ -50,9 +50,13 @@ fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
             .attr("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"));
     writer.write(XmlEvent::end_element());
 
-    // @TODO loop over sheets
-    // <Override PartName="/xl/worksheets/sheet{{ index }}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" />
-
+    for (i, sheet) in workbook.sheets.iter().enumerate() {
+        writer.write(
+            XmlEvent::start_element("Override")
+                .attr("PartName", &format!("xl/worksheets/sheet{}.xml", i + 1))
+                .attr("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"));
+        writer.write(XmlEvent::end_element());
+    }
     writer.write(XmlEvent::end_element());
 }
 
@@ -92,6 +96,37 @@ fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek
     writer.write(XmlEvent::end_element());
 }
 
+fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.start_file("xl/_rels/workbook.xml.rels", options).unwrap();
+
+    let mut writer = EmitterConfig::new().perform_indent(true)
+        .create_writer(writer);
+
+    writer.write(
+        XmlEvent::start_element("Relationships")
+            .default_ns("http://schemas.openxmlformats.org/package/2006/relationships")
+    );
+
+
+    for (i, sheet) in workbook.sheets.iter().enumerate() {
+        writer.write(
+            XmlEvent::start_element("Relationship")
+                .attr("Id", &format!("rId{}", i + 1))
+                .attr("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet")
+                .attr("Target", &format!("worksheets/sheet{}.xml", i +1 ))
+
+        );
+        writer.write(XmlEvent::end_element());
+    }
+
+    // @TODO theme
+    // @TODO styles
+    // @TODO shared strings
+
+    writer.write(XmlEvent::end_element());
+}
+
 pub fn write_document(workbook: &WorkBook, dst_path: String) {
     let path = Path::new(&dst_path);
     let file = File::create(&path).unwrap();
@@ -100,6 +135,7 @@ pub fn write_document(workbook: &WorkBook, dst_path: String) {
 
     write_content_types(workbook, &mut zip);
     write_root_rels(workbook, &mut zip);
+    write_workbook_rels(workbook, &mut zip);
 
     zip.finish().unwrap();
 }

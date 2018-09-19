@@ -2,7 +2,7 @@ use super::worksheet::WorkSheet;
 use std::io::Write;
 
 pub struct WorkBook {
-    sheets: Vec<WorkSheet>
+    pub sheets: Vec<WorkSheet>
 }
 
 impl WorkBook {
