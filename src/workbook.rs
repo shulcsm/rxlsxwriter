@@ -1,6 +1,7 @@
 use super::worksheet::WorkSheet;
 
 pub struct WorkBook {
+    // @TODO properties
     pub sheets: Vec<WorkSheet>
 }
 

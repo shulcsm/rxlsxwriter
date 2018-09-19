@@ -5,6 +5,7 @@ use super::workbook::WorkBook;
 use std::path::Path;
 use std::fs::File;
 use zip::{ZipWriter, CompressionMethod, write::FileOptions};
+use chrono::Utc;
 
 
 trait XmlWriter {
@@ -196,6 +197,44 @@ fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write +
     writer.write(XmlEvent::end_element()); // Properties
 }
 
+fn write_properties_core(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.start_file("docProps/core.xml", options).unwrap();
+
+    let mut writer = EmitterConfig::new().perform_indent(true)
+        .create_writer(writer);
+
+    writer.write(
+        XmlEvent::start_element("cp:corePropertie")
+            .ns("cp", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties")
+            .ns("dc", "http://purl.org/dc/elements/1.1/")
+            .ns("dcterms", "http://purl.org/dc/terms/")
+            .ns("dcmitype", "http://purl.org/dc/dcmitype/")
+            .ns("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+    );
+
+    // @TODO actual props when we have tem on workbook
+    writer.write_and_close_chars(XmlEvent::start_element("dc:creator"), "Creator");
+    writer.write_and_close_chars(XmlEvent::start_element("cp:lastModifiedBy"), "Modifier");
+
+    let dt = Utc::now();
+
+    writer.write_and_close_chars(
+        XmlEvent::start_element("dcterms:created")
+            .attr("xsi:type", "dcterms:W3CDTF"),
+        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+    );
+
+    writer.write_and_close_chars(
+        XmlEvent::start_element("dcterms:modified")
+            .attr("xsi:type", "dcterms:W3CDTF"),
+        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+    );
+
+    writer.write(XmlEvent::end_element()); // cp:coreProperties
+
+}
+
 pub fn write_document(workbook: &WorkBook, dst_path: String) {
     let path = Path::new(&dst_path);
     let file = File::create(&path).unwrap();
@@ -206,6 +245,12 @@ pub fn write_document(workbook: &WorkBook, dst_path: String) {
     write_root_rels(workbook, &mut zip);
     write_workbook_rels(workbook, &mut zip);
     write_properties_app(workbook, &mut zip);
+    write_properties_core(workbook, &mut zip);
+
+    // @TODO theme
+    // @TODO style
+    // @TODO workbook
+    // @TODO worksheets
 
     zip.finish().unwrap();
 }

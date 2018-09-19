@@ -1,5 +1,6 @@
 extern crate xml;
 extern crate zip;
+extern crate chrono;
 
 mod workbook;
 mod worksheet;
