@@ -164,12 +164,34 @@ fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write +
             .attr("baseType", "variant")
     );
 
-    // @TODO vt:variant
+    writer.write(XmlEvent::start_element("vt:variant"));
+    writer.write_and_close_chars(XmlEvent::start_element("vt:lpstr"), "Worksheets");
+    writer.write(XmlEvent::end_element()); // vt:variant
+
+    let num_sheets = &workbook.sheets.len().to_string();
+
+    writer.write(XmlEvent::start_element("vt:variant"));
+    writer.write_and_close_chars(XmlEvent::start_element("vt:i4"), num_sheets);
+    writer.write(XmlEvent::end_element()); // vt:variant
 
     writer.write(XmlEvent::end_element()); // vt:vector
     writer.write(XmlEvent::end_element()); // HeadingPairs
 
-    // @TODO TitlesOfParts
+
+    writer.write(XmlEvent::start_element("TitlesOfParts"));
+    writer.write(
+        XmlEvent::start_element("vt:variant")
+            .attr("size", num_sheets)
+            .attr("baseType", "lpstr"));
+
+    for (i, sheet) in workbook.sheets.iter().enumerate() {
+        // @TODO real sheet names when we have em
+        writer.write_and_close_chars(XmlEvent::start_element("vt:lpstr"), &format!("Sheet {}", i + 1));
+    }
+
+    writer.write(XmlEvent::end_element()); // vt:variant
+    writer.write(XmlEvent::end_element()); // TitlesOfParts
+
 
     writer.write(XmlEvent::end_element()); // Properties
 }
