@@ -1,7 +1,8 @@
 use super::worksheet::WorkSheet;
 
 pub struct WorkBook {
-    // @TODO properties
+    // @TODO document properties
+    // @TODO activeTab/sheet
     pub sheets: Vec<WorkSheet>
 }
 

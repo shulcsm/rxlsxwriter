@@ -123,8 +123,7 @@ fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
             XmlEvent::start_element("Relationship")
                 .attr("Id", &format!("rId{}", i + 1))
                 .attr("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet")
-                .attr("Target", &format!("worksheets/sheet{}.xml", i +1 ))
-
+                .attr("Target", &format!("worksheets/sheet{}.xml", i + 1))
         );
     }
 
@@ -136,7 +135,7 @@ fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
 }
 
 fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
-   let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("docProps/app.xml", options).unwrap();
 
     let mut writer = EmitterConfig::new().perform_indent(true)
@@ -222,17 +221,76 @@ fn write_properties_core(workbook: &WorkBook, writer: &mut ZipWriter<impl Write 
     writer.write_and_close_chars(
         XmlEvent::start_element("dcterms:created")
             .attr("xsi:type", "dcterms:W3CDTF"),
-        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
     );
 
     writer.write_and_close_chars(
         XmlEvent::start_element("dcterms:modified")
             .attr("xsi:type", "dcterms:W3CDTF"),
-        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+        &dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
     );
 
     writer.write(XmlEvent::end_element()); // cp:coreProperties
+}
 
+fn write_workbook(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    writer.start_file("xl/workbook.xml", options).unwrap();
+
+    let mut writer = EmitterConfig::new().perform_indent(true)
+        .create_writer(writer);
+
+    writer.write(
+        XmlEvent::start_element("workbook")
+            .default_ns("http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+            .ns("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+            .attr("xml:space", "preserve"));
+
+    writer.write_and_close(
+        XmlEvent::start_element("fileVersion")
+            .attr("appName", "xl")
+            .attr("lastEdited", "4")
+            .attr("lowestEdited", "4")
+            .attr("rupBuild", "4505"));
+
+    writer.write_and_close(
+        XmlEvent::start_element("workbookPr")
+            .attr("defaultThemeVersion", "124226")
+            .attr("codeName", "ThisWorkbook"));
+
+    writer.write(XmlEvent::start_element("bookViews"));
+    writer.write_and_close(
+        XmlEvent::start_element("workbookView")
+            .attr("activeTab", "0") // @TODO
+            .attr("autoFilterDateGrouping", "1")
+            .attr("firstSheet", "0")
+            .attr("minimized", "0")
+            .attr("showHorizontalScroll", "1")
+            .attr("showSheetTabs", "1")
+            .attr("showVerticalScroll", "1")
+            .attr("tabRatio", "600")
+            .attr("visibility", "visible")
+    );
+    writer.write(XmlEvent::end_element()); // bookViews
+
+    writer.write(XmlEvent::start_element("sheets"));
+
+    for (i, sheet) in workbook.sheets.iter().enumerate() {
+        writer.write_and_close(
+            XmlEvent::start_element("sheet")
+                // @TODO real sheet names when we have em
+                .attr("name", &format!("Sheet {}", i + 1))
+                .attr("sheetId", &(i + 1).to_string())
+                .attr("r:id", &format!("rId{}", i + 1))
+                // @TODO sheet state
+        );
+    }
+    writer.write(XmlEvent::end_element()); // sheets
+
+    // @TODO named ranges
+    // @TODO auto filter
+
+    writer.write(XmlEvent::end_element()); // workbook
 }
 
 pub fn write_document(workbook: &WorkBook, dst_path: String) {
@@ -247,9 +305,10 @@ pub fn write_document(workbook: &WorkBook, dst_path: String) {
     write_properties_app(workbook, &mut zip);
     write_properties_core(workbook, &mut zip);
 
+    // @TODO shared strings
     // @TODO theme
     // @TODO style
-    // @TODO workbook
+    write_workbook(workbook, &mut zip);
     // @TODO worksheets
 
     zip.finish().unwrap();
