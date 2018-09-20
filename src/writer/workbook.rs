@@ -1,32 +1,14 @@
-use xml::writer::{EventWriter, EmitterConfig, XmlEvent};
+use xml::writer::{EmitterConfig, XmlEvent};
 use std::io::{Write, Seek};
 
-use super::workbook::WorkBook;
-use std::path::Path;
-use std::fs::File;
+use super::super::workbook::WorkBook;
 use zip::{ZipWriter, CompressionMethod, write::FileOptions};
 use chrono::Utc;
 
+use super::util::XmlWriter;
 
-trait XmlWriter {
-    fn write_and_close<'a, E>(&mut self, event: E) -> () where E: Into<XmlEvent<'a>>;
-    fn write_and_close_chars<'a, E>(&mut self, event: E, chars: &str) -> () where E: Into<XmlEvent<'a>>;
-}
 
-impl<W: Write> XmlWriter for EventWriter<W> {
-    fn write_and_close<'a, E>(&mut self, event: E) -> () where E: Into<XmlEvent<'a>> {
-        self.write(event);
-        self.write(XmlEvent::end_element());
-    }
-
-    fn write_and_close_chars<'a, E>(&mut self, event: E, chars: &str) -> () where E: Into<XmlEvent<'a>> {
-        self.write(event);
-        self.write(XmlEvent::Characters(chars));
-        self.write(XmlEvent::end_element());
-    }
-}
-
-fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("[Content_Types].xml", options).unwrap();
 
@@ -64,7 +46,7 @@ fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
             .attr("PartName", "/xl/workbook.xml")
             .attr("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"));
 
-    for (i, sheet) in workbook.sheets.iter().enumerate() {
+    for (i, _sheet) in workbook.sheets.iter().enumerate() {
         writer.write_and_close(
             XmlEvent::start_element("Override")
                 .attr("PartName", &format!("xl/worksheets/sheet{}.xml", i + 1))
@@ -73,7 +55,7 @@ fn write_content_types(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
     writer.write(XmlEvent::end_element());
 }
 
-fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("_rels/.rels", options).unwrap();
 
@@ -106,7 +88,7 @@ fn write_root_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek
     writer.write(XmlEvent::end_element());
 }
 
-fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("xl/_rels/workbook.xml.rels", options).unwrap();
 
@@ -134,7 +116,7 @@ fn write_workbook_rels(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + 
     writer.write(XmlEvent::end_element());
 }
 
-fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("docProps/app.xml", options).unwrap();
 
@@ -196,7 +178,7 @@ fn write_properties_app(workbook: &WorkBook, writer: &mut ZipWriter<impl Write +
     writer.write(XmlEvent::end_element()); // Properties
 }
 
-fn write_properties_core(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_properties_core(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("docProps/core.xml", options).unwrap();
 
@@ -233,7 +215,7 @@ fn write_properties_core(workbook: &WorkBook, writer: &mut ZipWriter<impl Write 
     writer.write(XmlEvent::end_element()); // cp:coreProperties
 }
 
-fn write_workbook(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
+pub fn write_workbook(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>) {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     writer.start_file("xl/workbook.xml", options).unwrap();
 
@@ -297,25 +279,4 @@ fn write_workbook(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>
             .attr("fullCalcOnLoad", "1"));
 
     writer.write(XmlEvent::end_element()); // workbook
-}
-
-pub fn write_document(workbook: &WorkBook, dst_path: String) {
-    let path = Path::new(&dst_path);
-    let file = File::create(&path).unwrap();
-
-    let mut zip = ZipWriter::new(file);
-
-    write_content_types(workbook, &mut zip);
-    write_root_rels(workbook, &mut zip);
-    write_workbook_rels(workbook, &mut zip);
-    write_properties_app(workbook, &mut zip);
-    write_properties_core(workbook, &mut zip);
-
-    // @TODO shared strings
-    // @TODO theme
-    // @TODO style
-    write_workbook(workbook, &mut zip);
-    // @TODO worksheets
-
-    zip.finish().unwrap();
 }

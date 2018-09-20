@@ -12,6 +12,8 @@ type ColIdx = u16;
 pub struct WorkSheet {
     // @TODO name
     // @TODO state
+    // @TODO active cell, selected Cell
+    // @TODO panes
     cells: BTreeMap<(RowIdx, ColIdx), Cell>,
     max_row: RowIdx,
     max_col: ColIdx
