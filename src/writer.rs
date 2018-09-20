@@ -290,6 +290,12 @@ fn write_workbook(workbook: &WorkBook, writer: &mut ZipWriter<impl Write + Seek>
     // @TODO named ranges
     // @TODO auto filter
 
+    writer.write_and_close(
+        XmlEvent::start_element("calcPr")
+            .attr("calcId", "124519")
+            .attr("calcMode", "auto")
+            .attr("fullCalcOnLoad", "1"));
+
     writer.write(XmlEvent::end_element()); // workbook
 }
 
