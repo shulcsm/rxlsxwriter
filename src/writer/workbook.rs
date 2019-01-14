@@ -80,7 +80,7 @@ pub fn write_workbook_rels(mut w: EventWriter<impl Write>, workbook: &WorkBook) 
         XmlEvent::start_element("Relationships")
             .default_ns("http://schemas.openxmlformats.org/package/2006/relationships"));
 
-    for (i, sheet) in workbook.sheets.iter().enumerate() {
+    for (i, _sheet) in workbook.sheets.iter().enumerate() {
         w.write_and_close(
             XmlEvent::start_element("Relationship")
                 .attr("Id", &format!("rId{}", i + 1))
@@ -138,7 +138,7 @@ pub fn write_properties_app(mut w: EventWriter<impl Write>, workbook: &WorkBook)
             .attr("size", num_sheets)
             .attr("baseType", "lpstr"));
 
-    for (i, sheet) in workbook.sheets.iter().enumerate() {
+    for (i, _sheet) in workbook.sheets.iter().enumerate() {
         // @TODO real sheet names when we have em
         w.write_and_close_chars(XmlEvent::start_element("vt:lpstr"), &format!("Sheet {}", i + 1));
     }
@@ -149,7 +149,7 @@ pub fn write_properties_app(mut w: EventWriter<impl Write>, workbook: &WorkBook)
     w.write(XmlEvent::end_element()); // Properties
 }
 
-pub fn write_properties_core(mut w: EventWriter<impl Write>, workbook: &WorkBook) {
+pub fn write_properties_core(mut w: EventWriter<impl Write>, _workbook: &WorkBook) {
     w.write(
         XmlEvent::start_element("cp:corePropertie")
             .ns("cp", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties")
@@ -214,7 +214,7 @@ pub fn write_workbook(mut w: EventWriter<impl Write>, workbook: &WorkBook) {
 
     w.write(XmlEvent::start_element("sheets"));
 
-    for (i, sheet) in workbook.sheets.iter().enumerate() {
+    for (i, _sheet) in workbook.sheets.iter().enumerate() {
         w.write_and_close(
             XmlEvent::start_element("sheet")
                 // @TODO real sheet names when we have em

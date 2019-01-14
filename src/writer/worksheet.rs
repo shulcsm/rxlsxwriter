@@ -6,7 +6,7 @@ use super::util::XmlWriter;
 use xml::EventWriter;
 
 
-pub fn write_worksheet(mut w: EventWriter<impl Write>, ws: &WorkSheet) {
+pub fn write_worksheet(mut w: EventWriter<impl Write>, _ws: &WorkSheet) {
     w.write(
         XmlEvent::start_element("worksheet")
             .default_ns("http://schemas.openxmlformats.org/spreadsheetml/2006/main")
